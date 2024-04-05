@@ -1,0 +1,15 @@
+## install docker steps
+```ARG QT_VERSION=6.5.3```
+
+```git clone --branch=v${QT_VERSION} git://code.qt.io/qt/qt5.git qt-sources```
+
+```cd qt-sources && ./init-repository --module-subset=qtbase,qthttpserver```
+
+``` ../configure -opensource -confirm-license -widgets -submodules qthttpserver -nomake examples -nomake tests -prefix /usr/local/Qt/6.5.3-httpserver/gcc_64/```
+
+``` cmake --build . ```
+
+``` cmake --install . ``` 
+
+## cmake configuration
+```-DCMAKE_PREFIX_PATH="/usr/local/Qt/6.5.3-httpserver/gcc_64/"```
