@@ -3,9 +3,11 @@
 
 ```git clone --branch=v${QT_VERSION} git://code.qt.io/qt/qt5.git qt-sources```
 
-```cd qt-sources && ./init-repository --module-subset=qtbase,qthttpserver```
+```cd qt-sources && ./init-repository --module-subset=qtbase,qthttpserver,qtserialport```
 
-``` ../configure -opensource -confirm-license -widgets -submodules qthttpserver -nomake examples -nomake tests -prefix /usr/local/Qt/6.5.3-httpserver/gcc_64/```
+```cd build```
+
+``` ../configure -opensource -confirm-license -widgets -submodules qthttpserver,qtserialport  -nomake examples -nomake tests -prefix /usr/local/Qt/6.5.3-httpserver/gcc_64/```
 
 ``` cmake --build . ```
 
@@ -13,3 +15,14 @@
 
 ## cmake configuration
 ```-DCMAKE_PREFIX_PATH="/usr/local/Qt/6.5.3-httpserver/gcc_64/"```
+
+
+## commands used to create virtual port
+    sudo socat -d -d pty,raw,echo=0,link=/tmp/ttyS0 pty,raw,echo=0,link=/tmp/ttyS1
+    sudo socat -d -d pty,link=/tmp/ttyS0,raw,echo=0,b9600 pty,link=/tmp/ttyS1,raw,echo=0,b9600
+    sudo socat -d -d pty,link=/tmp/ttyS0,raw,echo=0,b115200 pty,link=/tmp/ttyS1,raw,echo=0,b115200
+
+    sudo echo "Hello from /tmp/ttyS1" > /tmp/ttyS1
+
+    sudo socat -d -d pty,raw,echo=0,b19200,link=/dev/ttyUSB0 pty,raw,echo=0,b19200,link=/dev/ttyUSB1
+    sudo echo "Hello from /dev/ttyUSB1" > /dev/ttyUSB1
