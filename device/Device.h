@@ -9,17 +9,11 @@ class Device : public QObject {
 public:
   explicit Device(QObject *parent = nullptr);
 
-signals:
-  void newData(const QByteArray &data);
-
 private slots:
   void handleReadyRead();
 
   void handleError(QSerialPort::SerialPortError error);
-//  void requestData();
-
   void sendMeasurementData();
-
   void startSendingMessages();
   void stopSendingMessages();
 

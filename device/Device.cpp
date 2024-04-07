@@ -1,4 +1,3 @@
-
 #include "Device.h"
 
 Device::Device(QObject *parent) : QObject(parent), frequency(2) {
@@ -23,10 +22,6 @@ Device::Device(QObject *parent) : QObject(parent), frequency(2) {
     qWarning() << "DEVICE: Failed to open serial port:" << serial.errorString();
   }
 
-  // optional request timer
-//  connect(&requestTimer, &QTimer::timeout, this, &Device::requestData);
-//  requestTimer.start(1000); // Request data every 1000 ms (1 second)
-
   frequencyTimer.setInterval(1000 / frequency);
   connect(&frequencyTimer, &QTimer::timeout, this,
           &Device::sendMeasurementData);
@@ -39,7 +34,7 @@ void Device::handleReadyRead() {
     QByteArray dataToWrite = "$0,ok\n";
     serial.write(dataToWrite);
 
-//    startSendingMessages();
+    startSendingMessages();
   }
   if (data == "$1\n") {
     qDebug() << "DEVICE: stop sending data";
@@ -50,12 +45,12 @@ void Device::handleReadyRead() {
     serial.write(dataToWrite);
   }
 
-  QRegularExpression regex("\\$(\\d+),(\\d+),(\\d+)\n");
+  QRegularExpression regex(R"(^\$2,(\d+),(true|false)\n$)");
   QRegularExpressionMatch match = regex.match(data);
 
   if (match.hasMatch()) {
-    frequency = match.captured(2).toInt();
-    debug = match.captured(3).toInt();
+    frequency = match.captured(1).toInt();
+    debug = QVariant(match.captured(2)).toBool();
     if (frequencyTimer.isActive()) {
       frequencyTimer.stop();
       frequencyTimer.setInterval(1000 / frequency);
@@ -63,30 +58,19 @@ void Device::handleReadyRead() {
     }
     frequencyTimer.setInterval(1000 / frequency);
 
-    qDebug() << "DEVICE: v1:" << frequency;
-    qDebug() << "DEVICE: v2:" << debug;
+    qDebug() << "DEVICE: frequency" << frequency << "debug" << debug;
 
-    qDebug() << "DEVICE: changed configuration data";
     const QString text = QString("$2,") + QString::number(frequency) + "," +
-                         QString::number(debug) + ",ok\n";
+                         QVariant(debug).toString() + ",ok\n";
     QByteArray dataToWrite = text.toStdString().c_str();
     serial.write(dataToWrite);
   }
-
-  emit newData(data);
 }
 
 void Device::handleError(QSerialPort::SerialPortError error) {
   qWarning() << "DEVICE: Serial port error:" << error << "-"
              << serial.errorString();
 }
-
-//void Device::requestData() {
-//  if (serial.isOpen()) {
-//
-//    qDebug() << "DEVICE: Requesting data...";
-//  }
-//}
 
 void Device::sendMeasurementData() {
   QByteArray dataToWrite = "$123.4,567.8,999.9\n";

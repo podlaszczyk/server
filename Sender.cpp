@@ -17,62 +17,83 @@ Sender::Sender(QObject *parent) : QObject(parent) {
     qWarning() << "Failed to MAIN open serial port:" << serial.errorString();
   }
 
-//  connect(&serial, &QSerialPort::readyRead, this, &Sender::readMeasurement);
   connect(
       &serial,
       QOverload<QSerialPort::SerialPortError>::of(&QSerialPort::errorOccurred),
       this, &Sender::handleError);
+
+  connect(&serial, &QSerialPort::readyRead, this, &Sender::handleReadyRead);
+  connect(&timer, &QTimer::timeout, this, &Sender::handleTimeout);
 }
 
-QSerialPort::SerialPortError Sender::handleReadyRead() {
+void Sender::handleReadyRead() {
   QByteArray data = serial.readAll();
-  qDebug() << "data" << data;
-  if (data == "$0,ok\n") {
-    qDebug() << "SENDER: CORRECT START RESPONSE ";
-    return QSerialPort::SerialPortError::NoError;
+  qDebug() << "Received data:" << data;
+
+  QList<QByteArray> messages = data.split('\n');
+  for (const QByteArray &message : messages) {
+    if (message.isEmpty())
+      continue;
+
+    processMessage(message);
   }
-  if (data == "$1,ok\n") {
-    qDebug() << "SENDER: CORRECT STOP RESPONSE ";
-    return QSerialPort::SerialPortError::NoError;
-  }
-  return QSerialPort::SerialPortError::UnknownError;
 }
 
-QSerialPort::SerialPortError Sender::startSending() {
-  QByteArray dataToWrite = "$0\n";
-  qint64 bytesWritten = serial.write(dataToWrite);
-  if (bytesWritten == -1) {
-    qCritical() << "Failed to write to serial port:" << serial.errorString();
-    serial.close();
-  }
+void Sender::processMessage(const QByteArray &message) {
+  QRegularExpression regexMeasurement(R"(^\$([\d.]+),([\d.]+),([\d.]+)$)");
+  QRegularExpressionMatch matchMeasurement = regexMeasurement.match(message);
 
-  if (serial.waitForReadyRead(timeout)) {
-    auto result = handleReadyRead();
-    return result;
+  QRegularExpression regexConfiguration(R"(^\$2,(\d+),(true|false),(\w+)$)");
+  QRegularExpressionMatch matchConfiguration =
+      regexConfiguration.match(message);
+
+  if (message.startsWith('$')) {
+    if (message.startsWith("$0,ok")) {
+
+      qDebug() << "Received start response:" << message;
+      timer.stop();
+      emit requestResult("ok");
+
+    } else if (message.startsWith("$1,ok")) {
+
+      qDebug() << "Received stop response:" << message;
+      timer.stop();
+      emit requestResult("ok");
+
+    } else if (matchConfiguration.hasMatch()) {
+
+      const auto frequency = matchConfiguration.captured(1).toInt();
+      const bool debug = matchConfiguration.captured(2) == "true";
+      const auto status = matchConfiguration.captured(3);
+      qDebug() << "Received config response:"
+               << "frequency" << frequency << "debug" << debug << "status"
+               << status;
+      timer.stop();
+      emit requestResult(status);
+
+    } else if (matchMeasurement.hasMatch()) {
+
+      const auto pressure = matchMeasurement.captured(1).toDouble();
+      const auto temperature = matchMeasurement.captured(2).toDouble();
+      const auto velocity = matchMeasurement.captured(3).toDouble();
+      qDebug() << "P" << pressure << "T" << temperature << "V" << velocity;
+
+    }
+  } else {
+    qDebug() << "Invalid message format:" << message;
   }
-  return QSerialPort::SerialPortError::TimeoutError;
 }
 
-QSerialPort::SerialPortError Sender::stopSending() {
-
-  QByteArray dataToWrite = "$1\n";
-  qint64 bytesWritten = serial.write(dataToWrite);
-  serial.clear(QSerialPort::Direction::Input);
-  if (bytesWritten == -1) {
-    qCritical() << "Failed to write to serial port:" << serial.errorString();
-    serial.close();
-  }
-
-  if (serial.waitForReadyRead(timeout)) {
-    auto result = handleReadyRead();
-    return result;
-  }
-  return QSerialPort::SerialPortError::TimeoutError;
+void Sender::handleTimeout() {
+  qDebug() << "Request timed out";
+  timer.stop();
+  emit requestResult("Error: Request timed out");
 }
-//void Sender::readMeasurement() {
-//  QByteArray data = serial.readLine();
-//  qDebug() << "data" << data;
-//}
+
+void Sender::sendRequest(const QByteArray &request) {
+  serial.write(request);
+  timer.start(1000); // Timeout after 1 second (adjust as needed)
+}
 
 void Sender::handleError(QSerialPort::SerialPortError error) {
   qWarning() << " Serial port error:" << error << "-" << serial.errorString();
