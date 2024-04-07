@@ -12,11 +12,12 @@ find_package(Qt6 REQUIRED COMPONENTS SerialPort)
 
 project(server)
 
+add_subdirectory(device)
 
 qt_standard_project_setup()
 qt_add_executable(server
         main.cpp
-        Device.cpp
+        Sender.cpp
 )
 
 target_link_libraries(server PUBLIC

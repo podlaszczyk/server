@@ -26,3 +26,6 @@
 
     sudo socat -d -d pty,raw,echo=0,b19200,link=/dev/ttyUSB0 pty,raw,echo=0,b19200,link=/dev/ttyUSB1
     sudo echo "Hello from /dev/ttyUSB1" > /dev/ttyUSB1
+
+curl -i -X GET http://localhost:7100/start
+curl -i -X GET http://localhost:7100/stop
