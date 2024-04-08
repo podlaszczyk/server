@@ -6,24 +6,22 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(Qt6 COMPONENTS HttpServer REQUIRED)
-find_package(Qt6 EXACT 6.5.3 COMPONENTS Widgets REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS SerialPort)
+find_package(Qt6 EXACT 6.5.3 COMPONENTS Core REQUIRED)
 
-project(server)
-
+add_subdirectory(data)
+add_subdirectory(database)
 add_subdirectory(device)
+add_subdirectory(httpServer)
 
 qt_standard_project_setup()
 qt_add_executable(server
         main.cpp
-        Sender.cpp
 )
 
-target_link_libraries(server PUBLIC
-        Qt6::Widgets
-        Qt6::HttpServer
-        Qt6::SerialPort
+target_link_libraries(server PRIVATE
+        Model::Data
+        dataBase::Database
+        MyServer::HttpServer
 )
 
 qt_add_resources(server "assets"

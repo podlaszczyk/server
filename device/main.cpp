@@ -1,10 +1,10 @@
 #include "Device.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
+    QCoreApplication app(argc, argv);
 
-  QCoreApplication app(argc, argv);
+    Device device;
 
-  Device device;
-
-  return app.exec();
+    return app.exec();
 }
