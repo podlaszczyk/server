@@ -14,9 +14,12 @@ class Server : public QObject
     Q_OBJECT
 
 public:
-    explicit Server(QObject* parent = nullptr);
+    explicit Server(UARTParameters uartParameters, HTTPParameters httpParameters, QObject* parent = nullptr);
 
 private:
+    UARTParameters uartParameters;
+    HTTPParameters httpParameters;
+
     Database database;
     Sender sender;
     QHttpServer httpServer;

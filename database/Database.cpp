@@ -4,9 +4,9 @@
 #include <QSqlError>
 #include <QSqlQuery>
 
-Database::Database()
+Database::Database(const std::string& path)
 {
-    db = openDatabase();
+    db = openDatabase(path);
     if (!db.isValid()) {
         return;
     }
@@ -32,10 +32,10 @@ Database::~Database()
     db.close();
 }
 
-QSqlDatabase Database::openDatabase() const
+QSqlDatabase Database::openDatabase(const std::string& path) const
 {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("database.db");
+    db.setDatabaseName(path.c_str());
 
     if (!db.open()) {
         qDebug() << "Error: Failed to open database";

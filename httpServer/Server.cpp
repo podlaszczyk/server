@@ -14,9 +14,12 @@ inline static QString host(const QHttpServerRequest& request)
     return QString::fromLatin1(request.value("Host"));
 }
 
-Server::Server(QObject* parent)
+Server::Server(UARTParameters uartParameters, HTTPParameters httpParameters, QObject* parent)
     : QObject(parent)
-    , sender(database)
+    , uartParameters(std::move(uartParameters))
+    , httpParameters(std::move(httpParameters))
+    , database(this->httpParameters.database_path)
+    , sender(this->uartParameters, database)
 {
     database.countAndDisplayRecords();
     database.retrieveAndDisplayRecords();
@@ -146,15 +149,17 @@ void Server::routes()
 
 void Server::startHttpListening()
 {
-    const auto port = httpServer.listen(QHostAddress::SpecialAddress::LocalHost, 7100);
+    //    const auto port = httpServer.listen(QHostAddress::SpecialAddress::LocalHost, 7100);
+    QHostAddress address(httpParameters.host.c_str());
+    const auto port = httpServer.listen(address, httpParameters.port);
     if (!port) {
-        qWarning() << QCoreApplication::translate("QHttpServerExample", "Server failed to listen on a port.");
+        qWarning() << QCoreApplication::translate("QHttpServer", "Server failed to listen on a port.")
+                   << httpParameters.host << ":" << httpParameters.port;
         return;
     }
-    qInfo().noquote() << QCoreApplication::translate("QHttpServerExample",
-                                                     "Running on http://127.0.0.1:%1/"
-                                                     "(Press CTRL+C to quit)")
-                             .arg(port);
+    qInfo() << QCoreApplication::translate("QHttpServer", "Running on http://%1:%2/")
+                   .arg(httpParameters.host.c_str())
+                   .arg(port);
 }
 
 void Server::stopLoopWhenReqResultReceived(const QString& result)

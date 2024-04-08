@@ -1,22 +1,22 @@
 #include "Sender.h"
 
-#include "Database.h"
-
 #include <QThread>
 
-Sender::Sender(const Database& db, QObject* parent)
+Sender::Sender(const UARTParameters& uartParameters, const Database& db, QObject* parent)
     : QObject(parent)
     , database(db)
 {
-    serial.setPortName("/dev/ttyUSB0");
-
-    serial.setBaudRate(QSerialPort::Baud9600);
+    const auto port = uartParameters.port.data();
+    serial.setPortName(port);
+    serial.setBaudRate(uartParameters.baudrate);
     serial.setDataBits(QSerialPort::Data8);
     serial.setParity(QSerialPort::NoParity);
     serial.setStopBits(QSerialPort::OneStop);
 
     if (serial.open(QIODevice::ReadWrite)) {
         qDebug() << "Serial port MAIN opened successfully";
+        qDebug() << "SERIAL PORT PARAMETERS: " << serial.portName() << serial.baudRate() << serial.dataBits()
+                 << serial.parity() << serial.stopBits();
     }
     else {
         qWarning() << "Failed to MAIN open serial port:" << serial.errorString();

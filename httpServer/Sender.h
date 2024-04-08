@@ -15,7 +15,7 @@ class Sender : public QObject
     Q_OBJECT
 
 public:
-    Sender(const Database& db, QObject* parent = nullptr);
+    Sender(const UARTParameters& uartParameters, const Database& db, QObject* parent = nullptr);
 
     void sendRequest(const QByteArray& request);
 

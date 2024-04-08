@@ -9,7 +9,7 @@
 class Database
 {
 public:
-    Database();
+    Database(const std::string& path);
     ~Database();
 
     void insertRecordToMessages(const Data& data) const;
@@ -20,7 +20,7 @@ public:
     std::optional<Config> getConfiguration();
 
 private:
-    QSqlDatabase openDatabase() const;
+    QSqlDatabase openDatabase(const std::string& path) const;
     bool createMessagesTable() const;
     bool createConfigurationTable() const;
     bool clearMessagesTable() const;

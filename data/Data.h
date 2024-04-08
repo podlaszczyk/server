@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
 struct Data
 {
@@ -30,4 +31,17 @@ struct Config
 {
     int frequency = 10;
     bool debug = false;
+};
+
+struct UARTParameters
+{
+    std::string port;
+    int baudrate;
+};
+
+struct HTTPParameters
+{
+    std::string host;
+    int port;
+    std::string database_path;
 };
