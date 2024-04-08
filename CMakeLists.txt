@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 EXACT 6.5.3 COMPONENTS Core REQUIRED)
 
+add_subdirectory(logMessageHandler)
 add_subdirectory(data)
 add_subdirectory(database)
 add_subdirectory(device)
@@ -22,6 +23,7 @@ target_link_libraries(server PRIVATE
         Model::Data
         dataBase::Database
         MyServer::HttpServer
+        Logger::Logger
 )
 
 qt_add_resources(server "assets"

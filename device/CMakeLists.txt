@@ -10,5 +10,6 @@ qt_add_executable(Device
 target_link_libraries(Device PUBLIC
         Qt6::Core
         Qt6::SerialPort
+        Logger::Logger
 )
 
