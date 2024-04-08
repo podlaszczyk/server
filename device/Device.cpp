@@ -1,4 +1,5 @@
 #include "Device.h"
+#include <QRandomGenerator>
 
 Device::Device(QObject *parent) : QObject(parent), frequency(2) {
 
@@ -73,7 +74,26 @@ void Device::handleError(QSerialPort::SerialPortError error) {
 }
 
 void Device::sendMeasurementData() {
-  QByteArray dataToWrite = "$123.4,567.8,999.9\n";
+  double min = 0.0;
+  double max = 1000.0;
+
+  qlonglong randomInt1 = QRandomGenerator::global()->bounded(
+      static_cast<qlonglong>(min * 100), static_cast<qlonglong>(max * 100));
+  double random1 = static_cast<double>(randomInt1) / 100.0;
+
+  qlonglong randomInt2 = QRandomGenerator::global()->bounded(
+      static_cast<qlonglong>(min * 100), static_cast<qlonglong>(max * 100));
+  double random2 = static_cast<double>(randomInt2) / 100.0;
+
+  qlonglong randomInt3 = QRandomGenerator::global()->bounded(
+      static_cast<qlonglong>(min * 100), static_cast<qlonglong>(max * 100));
+  double random3 = static_cast<double>(randomInt3) / 100.0;
+
+  const auto data = QString("$") + QString::number(random1, 'f', 1) + "," +
+                    QString::number(random2, 'f', 1) + "," +
+                    QString::number(random3, 'f', 1) + "\n";
+
+  QByteArray dataToWrite = data.toLocal8Bit();
   serial.write(dataToWrite);
   qDebug() << "DEVICE: dataSent";
 }

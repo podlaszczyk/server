@@ -73,6 +73,75 @@ int main(int argc, char *argv[]) {
     return QHttpServerResponder::StatusCode::InternalServerError;
   });
 
+  httpServer.route("/messages", [&](const QHttpServerRequest &request) {
+    QUrl url = request.url();
+    QUrlQuery query(url.query());
+
+    if (query.hasQueryItem("limit")) {
+      QString limitValue = query.queryItemValue("limit");
+      bool conversionOk;
+      int limit = limitValue.toInt(&conversionOk);
+
+      if (conversionOk && limit > 0) {
+        QString responseMessage =
+            QString("Retrieving messages with limit: %1").arg(limit);
+        qDebug() << responseMessage;
+        auto measurements = sender.getMeasurements(limit);
+
+        QJsonArray jsonArray;
+        for (const auto &data : measurements) {
+          QJsonObject dataObject;
+          dataObject["pressure"] = data.pressure;
+          dataObject["temperature"] = data.temperature;
+          dataObject["velocity"] = data.velocity;
+
+          jsonArray.append(dataObject);
+        }
+        QJsonDocument jsonDocument(jsonArray);
+        QByteArray jsonData = jsonDocument.toJson();
+
+        return QHttpServerResponse(jsonData);
+
+      } else {
+        return QHttpServerResponse(
+            QHttpServerResponder::StatusCode::BadRequest);
+      }
+    } else {
+      return QHttpServerResponse(QHttpServerResponder::StatusCode::BadRequest);
+    }
+  });
+
+  httpServer.route("/device", [&](const QHttpServerRequest &request) {
+    const auto deviceConfig = sender.getConfig();
+    const auto meanLast10 = sender.getMeanLast10();
+    const auto latest = sender.getLatest();
+
+    QJsonObject configJson;
+    configJson["frequency"] = deviceConfig.frequency;
+    configJson["debug"] = deviceConfig.debug;
+
+    QJsonObject meanLast10Json;
+    meanLast10Json["pressure"] = QString::number(meanLast10.pressure, 'f', 1).toDouble();
+    meanLast10Json["temperature"] =
+        QString::number(meanLast10.temperature, 'f', 1).toDouble();
+    meanLast10Json["velocity"] = QString::number(meanLast10.velocity, 'f', 1).toDouble();
+
+    QJsonObject latestJson;
+    latestJson["pressure"] = latest.pressure;
+    latestJson["temperature"] = latest.temperature;
+    latestJson["velocity"] = latest.velocity;
+
+    QJsonObject deviceJson;
+    deviceJson["curr_config"] = configJson;
+    deviceJson["mean_last_10"] = meanLast10Json;
+    deviceJson["latest"] = latestJson;
+
+    QJsonDocument jsonDocument(deviceJson);
+    QByteArray jsonData = jsonDocument.toJson();
+
+    return QHttpServerResponse(jsonData);
+  });
+
   const auto port =
       httpServer.listen(QHostAddress::SpecialAddress::LocalHost, 7100);
   if (!port) {

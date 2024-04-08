@@ -24,6 +24,8 @@ Sender::Sender(QObject *parent) : QObject(parent) {
 
   connect(&serial, &QSerialPort::readyRead, this, &Sender::handleReadyRead);
   connect(&timer, &QTimer::timeout, this, &Sender::handleTimeout);
+
+  measurements = std::vector<Data>(10, {911.2, 22.5, 33.1});
 }
 
 void Sender::handleReadyRead() {
@@ -65,6 +67,10 @@ void Sender::processMessage(const QByteArray &message) {
       const auto frequency = matchConfiguration.captured(1).toInt();
       const bool debug = matchConfiguration.captured(2) == "true";
       const auto status = matchConfiguration.captured(3);
+
+      config.debug = debug;
+      config.frequency = frequency;
+
       qDebug() << "Received config response:"
                << "frequency" << frequency << "debug" << debug << "status"
                << status;
@@ -78,6 +84,9 @@ void Sender::processMessage(const QByteArray &message) {
       const auto velocity = matchMeasurement.captured(3).toDouble();
       qDebug() << "P" << pressure << "T" << temperature << "V" << velocity;
 
+      measurements.push_back({.pressure = pressure,
+                              .temperature = temperature,
+                              .velocity = velocity});
     }
   } else {
     qDebug() << "Invalid message format:" << message;
@@ -97,4 +106,42 @@ void Sender::sendRequest(const QByteArray &request) {
 
 void Sender::handleError(QSerialPort::SerialPortError error) {
   qWarning() << " Serial port error:" << error << "-" << serial.errorString();
+}
+
+std::vector<Sender::Data> Sender::getMeasurements(int number) {
+
+  if (number >= measurements.size()) {
+    return measurements; // Return all elements if N is greater than or equal to
+                         // size
+  } else {
+    return {measurements.end() - number, measurements.end()};
+  }
+}
+
+Sender::Config Sender::getConfig() { return config; }
+Sender::Data Sender::getLatest() {
+  if (!measurements.empty()) {
+    return measurements.back();
+  }
+  return {};
+}
+Sender::Data Sender::getMeanLast10() {
+  std::size_t N = 10;
+
+  auto accumulators = std::make_tuple(0.0, 0.0, 0.0);
+
+  std::for_each(measurements.end() - N, measurements.end(), [&](const Data &d) {
+    std::get<0>(accumulators) += d.pressure;
+    std::get<1>(accumulators) += d.temperature;
+    std::get<2>(accumulators) += d.velocity;
+  });
+
+  auto [sumPressure, sumTemperature, sumVelocity] = accumulators;
+  double meanPressure = sumPressure / static_cast<double>(N);
+  double meanTemperature = sumTemperature / static_cast<double>(N);
+  double meanVelocity = sumVelocity / static_cast<double>(N);
+
+  return {.pressure = meanPressure,
+          .temperature = meanTemperature,
+          .velocity = meanVelocity};
 }

@@ -8,13 +8,26 @@ class Sender : public QObject {
   Q_OBJECT
 
 public:
+
+  struct Data{
+    double pressure;
+    double temperature;
+    double velocity;
+  };
+
+  struct Config{
+    int frequency=10;
+    bool debug=false;
+  };
   Sender(QObject *parent = nullptr);
 
-//  QSerialPort::SerialPortError handleReadyRead();
-//  QSerialPort::SerialPortError startSending();
-//  QSerialPort::SerialPortError stopSending();
-
   void sendRequest(const QByteArray &request);
+
+  Config getConfig();
+  std::vector<Data> getMeasurements(int number);
+  Data getLatest();
+  Data getMeanLast10();
+
 signals:
   void dataHandled();
   void requestResult(const QString &result);
@@ -28,4 +41,7 @@ private:
   void handleReadyRead();
   void handleTimeout();
   void processMessage(const QByteArray &message);
+
+  std::vector<Data> measurements;
+  Config config;
 };
