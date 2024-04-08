@@ -4,13 +4,13 @@ Currently image is 6.5 GB due to many unused dependecies and shall be dramatical
 
 ### example build command
 
-```docker build -t server_image .```
+```docker build -t server_image_smaller .```
 
 # configure and build app
 
 ### enter container
 
-```docker run -it -v ${PWD}:/src --name clone_server server_image:latest```
+```docker run -it -v ${PWD}:/src --name clone_server server_image_smaller:latest```
 
 ### cmake configure
 
