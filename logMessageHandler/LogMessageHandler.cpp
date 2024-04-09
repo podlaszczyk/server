@@ -1,8 +1,8 @@
 #include "LogMessageHandler.h"
 
-void LogMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+void LogMessageHandler(QtMsgType type, const QMessageLogContext& /*context*/, const QString& msg)
 {
-    QFile logFile("debug.log");
+    QFile logFile("debugN.log");
     if (logFile.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         QTextStream stream(&logFile);
         stream << QDateTime::currentDateTime().toString(Qt::ISODate) << " ";

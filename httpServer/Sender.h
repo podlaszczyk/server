@@ -16,7 +16,9 @@ class Sender : public QObject
 
 public:
     Sender(const UARTParameters& uartParameters, const Database& db, QObject* parent = nullptr);
+    ~Sender() final;
 
+    bool openUARTConnection();
     void sendRequest(const QByteArray& request);
 
     Config getConfig();
@@ -32,7 +34,6 @@ private:
     int timeout = 3000;
     QTimer timer;
 
-    void handleError(QSerialPort::SerialPortError error);
     void handleReadyRead();
     void handleTimeout();
     void processMessage(const QByteArray& message);

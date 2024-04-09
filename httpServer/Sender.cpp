@@ -13,28 +13,20 @@ Sender::Sender(const UARTParameters& uartParameters, const Database& db, QObject
     serial.setParity(QSerialPort::NoParity);
     serial.setStopBits(QSerialPort::OneStop);
 
-    if (serial.open(QIODevice::ReadWrite)) {
-        qDebug() << "Serial port MAIN opened successfully";
-        qDebug() << "SERIAL PORT PARAMETERS: " << serial.portName() << serial.baudRate() << serial.dataBits()
-                 << serial.parity() << serial.stopBits();
-    }
-    else {
-        qWarning() << "Failed to MAIN open serial port:" << serial.errorString();
-    }
-
-    connect(&serial,
-            QOverload<QSerialPort::SerialPortError>::of(&QSerialPort::errorOccurred),
-            this,
-            &Sender::handleError);
-
     connect(&serial, &QSerialPort::readyRead, this, &Sender::handleReadyRead);
     connect(&timer, &QTimer::timeout, this, &Sender::handleTimeout);
+}
+
+Sender::~Sender()
+{
+    serial.close();
 }
 
 void Sender::handleReadyRead()
 {
     QByteArray data = serial.readAll();
-    qDebug() << "Received data:" << data;
+    qDebug() << "SENDER: "
+             << "Received data:" << data;
 
     QList<QByteArray> messages = data.split('\n');
     for (const QByteArray& message : messages) {
@@ -55,12 +47,14 @@ void Sender::processMessage(const QByteArray& message)
 
     if (message.startsWith('$')) {
         if (message.startsWith("$0,ok")) {
-            qDebug() << "Received start response:" << message;
+            qDebug() << "SENDER: "
+                     << "Received start response:" << message;
             timer.stop();
             emit requestResult("ok");
         }
         else if (message.startsWith("$1,ok")) {
-            qDebug() << "Received stop response:" << message;
+            qDebug() << "SENDER: "
+                     << "Received stop response:" << message;
             timer.stop();
             emit requestResult("ok");
         }
@@ -71,7 +65,8 @@ void Sender::processMessage(const QByteArray& message)
 
             database.insertRecordToConfiguration({.frequency = frequency, .debug = debug});
 
-            qDebug() << "Received config response:"
+            qDebug() << "SENDER: "
+                     << "Received config response:"
                      << "frequency" << frequency << "debug" << debug << "status" << status;
             timer.stop();
             emit requestResult(status);
@@ -80,32 +75,30 @@ void Sender::processMessage(const QByteArray& message)
             const auto pressure = matchMeasurement.captured(1).toDouble();
             const auto temperature = matchMeasurement.captured(2).toDouble();
             const auto velocity = matchMeasurement.captured(3).toDouble();
-            qDebug() << "P" << pressure << "T" << temperature << "V" << velocity;
+            qDebug() << "SENDER: "
+                     << "PRESSURE:" << pressure << "TEMPERATURE" << temperature << "VELOCITY" << velocity;
 
             addData({.pressure = pressure, .temperature = temperature, .velocity = velocity});
         }
     }
     else {
-        qDebug() << "Invalid message format:" << message;
+        qDebug() << "SENDER: "
+                 << "Invalid message format:" << message;
     }
 }
 
 void Sender::handleTimeout()
 {
-    qDebug() << "Request timed out";
+    qWarning() << "SENDER: "
+               << "Request timed out";
     timer.stop();
-    emit requestResult("Error: Request timed out");
+    emit requestResult("Warning: Request timed out");
 }
 
 void Sender::sendRequest(const QByteArray& request)
 {
     serial.write(request);
-    timer.start(1000);
-}
-
-void Sender::handleError(QSerialPort::SerialPortError error)
-{
-    qWarning() << " Serial port error:" << error << "-" << serial.errorString();
+    timer.start(timeout);
 }
 
 std::deque<Data> Sender::getMeasurements(int number)
@@ -135,7 +128,7 @@ Data Sender::getLatest()
 Data Sender::getMeanLast10()
 {
     std::size_t N = 10;
-    const auto records = getMeasurements(N);
+    const auto records = getMeasurements(static_cast<int>(N));
 
     auto accumulators = std::make_tuple(0.0, 0.0, 0.0);
 
@@ -158,4 +151,21 @@ void Sender::addData(const Data& data)
     if (dataSet.insert(data).second) {
         database.insertRecordToMessages(data);
     }
+}
+
+bool Sender::openUARTConnection()
+{
+    if (serial.open(QIODevice::ReadWrite)) {
+        qDebug() << "SENDER: "
+                 << "Serial port opened successfully"
+                 << "SERIAL PORT PARAMETERS: " << serial.portName() << serial.baudRate() << serial.dataBits()
+                 << serial.parity() << serial.stopBits();
+        return true;
+    }
+
+    qWarning() << "SENDER: "
+               << "Failed to open serial port:" << serial.errorString()
+               << "SERIAL PORT PARAMETERS: " << serial.portName() << serial.baudRate() << serial.dataBits()
+               << serial.parity() << serial.stopBits();
+    return false;
 }

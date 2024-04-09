@@ -14,19 +14,23 @@ class Server : public QObject
     Q_OBJECT
 
 public:
-    explicit Server(UARTParameters uartParameters, HTTPParameters httpParameters, QObject* parent = nullptr);
+    Server(UARTParameters uartParameters, HTTPParameters httpParameters, QObject* parent = nullptr);
+
+    bool getUartStatus() const;
+    void startHttpListening();
 
 private:
     UARTParameters uartParameters;
-    HTTPParameters httpParameters;
 
+    HTTPParameters httpParameters;
     Database database;
     Sender sender;
     QHttpServer httpServer;
     QString requestResult;
+
     QEventLoop loop;
 
+    bool senderStatus = false;
     void routes();
-    void startHttpListening();
-    void stopLoopWhenReqResultReceived(const QString& result);
+    void onReqResultReceived(const QString& result);
 };

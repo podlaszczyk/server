@@ -1,6 +1,5 @@
+#include "LogMessageHandler.h"
 #include "Server.h"
-
-#include <LogMessageHandler.h>
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -25,7 +24,12 @@ bool parserCLI(const QCoreApplication& app, UARTParameters& uartParameters, HTTP
     QCommandLineOption httpPortOption(QStringList() << "httpPort", "Set httpPort (e.g 7100) ", "httpPort", "7100");
 
     QCommandLineOption dbOption(QStringList() << "db", "Set db (e.g database.db) ", "db", "database.db");
+    QCommandLineOption verboseOption({
+        {"v", "verbose"},
+        "Enable verbose output to console"
+    });
 
+    parser.addOption(verboseOption);
     parser.addOption(uartPortOption);
     parser.addOption(baudRateOption);
     parser.addOption(hostOption);
@@ -34,6 +38,10 @@ bool parserCLI(const QCoreApplication& app, UARTParameters& uartParameters, HTTP
 
     parser.process(app);
 
+    bool verbose = parser.isSet("verbose");
+    if (!verbose) {
+        qInstallMessageHandler(LogMessageHandler);
+    }
     if (parser.isSet("help")) {
         parser.showHelp(0);
     }
@@ -81,9 +89,14 @@ int main(int argc, char* argv[])
     if (!parserCLI(app, uartParameters, httpParameters)) {
         return -1;
     }
-
-    qInstallMessageHandler(LogMessageHandler);
+    QString basePath = QCoreApplication::applicationDirPath();
+    qDebug() << "Base Path:" << basePath;
     Server server(uartParameters, httpParameters);
+    if (!server.getUartStatus()) {
+        qWarning() << "MAIN: Application failed due to error with UART. Check logs";
+        return -1;
+    }
+    server.startHttpListening();
 
     return app.exec();
 }

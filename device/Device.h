@@ -9,6 +9,7 @@ class Device : public QObject
 
 public:
     explicit Device(QObject* parent = nullptr);
+    ~Device() override;
 
 private slots:
     void handleReadyRead();

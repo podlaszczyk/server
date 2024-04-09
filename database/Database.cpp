@@ -38,7 +38,7 @@ QSqlDatabase Database::openDatabase(const std::string& path) const
     db.setDatabaseName(path.c_str());
 
     if (!db.open()) {
-        qDebug() << "Error: Failed to open database";
+        qWarning() << "DATABASE: Error: Failed to open database";
     }
 
     return db;
@@ -60,12 +60,11 @@ bool Database::createMessagesTable() const
     createTableQuery.prepare(createTableSql);
 
     if (!createTableQuery.exec()) {
-        qDebug() << "Error: Failed to create 'messages' table";
-        qDebug() << createTableQuery.lastError().text();
+        qWarning() << "DATABASE: Error: Failed to create 'messages' table" << createTableQuery.lastError().text();
         return false;
     }
 
-    qDebug() << "'messages' table created successfully";
+    qDebug() << "DATABASE:  'messages' table created successfully";
     return true;
 }
 
@@ -82,12 +81,11 @@ bool Database::createConfigurationTable() const
     createTableQuery.prepare(createTableSql);
 
     if (!createTableQuery.exec()) {
-        qDebug() << "Error: Failed to create 'configuration' table";
-        qDebug() << createTableQuery.lastError().text();
+        qWarning() << "Error: Failed to create 'configuration' table" << createTableQuery.lastError().text();
         return false;
     }
 
-    qDebug() << "'configuration' table created successfully";
+    qDebug() << "DATABASE: 'configuration' table created successfully";
     return true;
 }
 
@@ -96,12 +94,11 @@ bool Database::clearMessagesTable() const
     QSqlQuery clearQuery("DELETE FROM messages", db);
 
     if (!clearQuery.exec()) {
-        qDebug() << "Error: Failed to clear data from 'messages' table";
-        qDebug() << clearQuery.lastError().text();
+        qWarning() << "Error: Failed to clear data from 'messages' table" << clearQuery.lastError().text();
         return false;
     }
 
-    qDebug() << "All data cleared from 'messages' table";
+    qDebug() << "DATABASE: All data cleared from 'messages' table";
     return true;
 }
 
@@ -128,8 +125,7 @@ void Database::insertRecordToMessages(const Data& data) const
     insertQuery.bindValue(":timestamp", timestamp);
 
     if (!insertQuery.exec()) {
-        qDebug() << "Error: Failed to insert record";
-        qDebug() << insertQuery.lastError().text();
+        qWarning() << "Error: Failed to insert record" << insertQuery.lastError().text();
     }
     else {
         qDebug() << "Record inserted successfully";
@@ -141,8 +137,7 @@ void Database::retrieveAndDisplayRecords() const
     QSqlQuery selectQuery("SELECT pressure, temperature, velocity, timestamp FROM messages", db);
 
     if (!selectQuery.exec()) {
-        qDebug() << "Error: Failed to execute SELECT query";
-        qDebug() << selectQuery.lastError().text();
+        qWarning() << "Error: Failed to execute SELECT query" << selectQuery.lastError().text();
         return;
     }
 
@@ -152,11 +147,12 @@ void Database::retrieveAndDisplayRecords() const
         double velocity = selectQuery.value(2).toDouble();
         double timestamp = selectQuery.value(3).toDouble();
 
-        qDebug() << "Record:";
-        qDebug() << "  Pressure:" << QString::number(pressure, 'f', 1).toDouble();
-        qDebug() << "  Temperature:" << QString::number(temperature, 'f', 1).toDouble();
-        qDebug() << "  Velocity:" << QString::number(velocity, 'f', 1).toDouble();
-        qDebug() << qSetRealNumberPrecision(15) << "  Timestamp:" << QString::number(timestamp, 'f', 4).toDouble();
+        qDebug() << "DATABASE:  Record:";
+        qDebug() << "DATABASE:  Pressure:" << QString::number(pressure, 'f', 1).toDouble();
+        qDebug() << "DATABASE:  Temperature:" << QString::number(temperature, 'f', 1).toDouble();
+        qDebug() << "DATABASE:  Velocity:" << QString::number(velocity, 'f', 1).toDouble();
+        qDebug() << "DATABASE:" << qSetRealNumberPrecision(15)
+                 << "  Timestamp:" << QString::number(timestamp, 'f', 4).toDouble();
     }
 }
 
@@ -165,13 +161,12 @@ void Database::countAndDisplayRecords() const
     QSqlQuery countQuery("SELECT COUNT(*) FROM messages", db);
 
     if (!countQuery.exec() || !countQuery.first()) {
-        qDebug() << "Error: Failed to execute COUNT query";
-        qDebug() << countQuery.lastError().text();
+        qWarning() << "Error: Failed to execute COUNT query" << countQuery.lastError().text();
         return;
     }
 
     int recordCount = countQuery.value(0).toInt();
-    qDebug() << "Number of records in 'messages' table:" << recordCount;
+    qDebug() << "DATABASE: Number of records in 'messages' table:" << recordCount;
 }
 
 std::deque<Data> Database::getLatestNRecords(int number)
@@ -184,19 +179,19 @@ std::deque<Data> Database::getLatestNRecords(int number)
 
     // Execute the query
     if (!query.exec()) {
-        qDebug() << "Error: Failed to execute query";
-        qDebug() << query.lastError().text();
+        qWarning() << "Error: Failed to execute query" << query.lastError().text();
         db.close();
     }
     std::deque<Data> container;
-    qDebug() << "Last N added values in 'messages' table:";
+    qDebug() << "DATABASE: Last " << number << " added values in 'messages' table:";
     while (query.next()) {
         double pressure = query.value(0).toDouble();
         double temperature = query.value(1).toDouble();
         double velocity = query.value(2).toDouble();
         double timestamp = query.value(3).toDouble();
 
-        qDebug() << "Pressure:" << pressure << ", Temperature:" << temperature << ", Velocity:" << velocity
+        qDebug() << "DATABASE:"
+                 << "Pressure:" << pressure << ", Temperature:" << temperature << ", Velocity:" << velocity
                  << ", Timestamp:" << timestamp;
 
         Data data{.pressure = pressure, .temperature = temperature, .velocity = velocity};
@@ -219,8 +214,7 @@ void Database::insertRecordToConfiguration(const Config& config) const
     query.bindValue(":debug", config.debug ? 1 : 0);
 
     if (!query.exec()) {
-        qDebug() << "Error: Failed to insert or replace record in 'configuration' table";
-        qDebug() << query.lastError().text();
+        qWarning() << "Error: Failed to insert or replace record in 'configuration' table" << query.lastError().text();
         return;
     }
 
@@ -233,8 +227,7 @@ std::optional<Config> Database::getConfiguration()
     query.prepare("SELECT frequency, debug FROM configuration WHERE id = 1");
 
     if (!query.exec()) {
-        qDebug() << "Error: Failed to execute query";
-        qDebug() << query.lastError().text();
+        qWarning() << "Error: Failed to execute query" << query.lastError().text();
         return {};
     }
 
@@ -242,14 +235,14 @@ std::optional<Config> Database::getConfiguration()
         int frequency = query.value(0).toInt();
         bool debug = query.value(1).toBool();
 
-        qDebug() << "Configuration values:";
-        qDebug() << "Frequency:" << frequency;
-        qDebug() << "Debug:" << debug;
+        qDebug() << "DATABASE:"
+                 << "Configuration values:"
+                 << "Frequency:" << frequency << "Debug:" << debug;
 
         Config config{.frequency = frequency, .debug = debug};
         return config;
     }
-    qDebug() << "Error: No configuration record found with id = 1";
+    qWarning() << "Error: No configuration record found with id = 1";
 
     return {};
 }

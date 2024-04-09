@@ -9,11 +9,6 @@
 
 using namespace Qt::StringLiterals;
 
-inline static QString host(const QHttpServerRequest& request)
-{
-    return QString::fromLatin1(request.value("Host"));
-}
-
 Server::Server(UARTParameters uartParameters, HTTPParameters httpParameters, QObject* parent)
     : QObject(parent)
     , uartParameters(std::move(uartParameters))
@@ -24,10 +19,10 @@ Server::Server(UARTParameters uartParameters, HTTPParameters httpParameters, QOb
     database.countAndDisplayRecords();
     database.retrieveAndDisplayRecords();
 
-    QObject::connect(&sender, &Sender::requestResult, this, &Server::stopLoopWhenReqResultReceived);
+    senderStatus = sender.openUARTConnection();
 
+    QObject::connect(&sender, &Sender::requestResult, this, &Server::onReqResultReceived);
     routes();
-    startHttpListening();
 }
 
 void Server::routes()
@@ -65,7 +60,8 @@ void Server::routes()
             const auto frequency = query.queryItemValue("frequency");
             const auto debug = query.queryItemValue("debug");
 
-            qDebug() << "Received Http Values:" << frequency << debug;
+            qDebug() << "SERVER: "
+                     << "Received Http Values:" << frequency << debug;
 
             const QString uartReq = QString("$2,") + frequency + "," + debug + "\n";
 
@@ -90,7 +86,7 @@ void Server::routes()
 
             if (conversionOk && limit > 0) {
                 QString responseMessage = QString("Retrieving messages with limit: %1").arg(limit);
-                qDebug() << responseMessage;
+                qDebug() << "SERVER:" << responseMessage;
                 auto measurements = sender.getMeasurements(limit);
 
                 QJsonArray jsonArray;
@@ -149,11 +145,10 @@ void Server::routes()
 
 void Server::startHttpListening()
 {
-    //    const auto port = httpServer.listen(QHostAddress::SpecialAddress::LocalHost, 7100);
     QHostAddress address(httpParameters.host.c_str());
     const auto port = httpServer.listen(address, httpParameters.port);
     if (!port) {
-        qWarning() << QCoreApplication::translate("QHttpServer", "Server failed to listen on a port.")
+        qWarning() << "SERVER:" << QCoreApplication::translate("QHttpServer", "Server failed to listen on a port.")
                    << httpParameters.host << ":" << httpParameters.port;
         return;
     }
@@ -162,9 +157,14 @@ void Server::startHttpListening()
                    .arg(port);
 }
 
-void Server::stopLoopWhenReqResultReceived(const QString& result)
+void Server::onReqResultReceived(const QString& result)
 {
     requestResult = result;
     qDebug() << "Request result:" << requestResult;
     loop.quit();
+}
+
+bool Server::getUartStatus() const
+{
+    return senderStatus;
 }

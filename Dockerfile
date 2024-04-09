@@ -56,14 +56,6 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cm
     make install && \
     rm -rf cmake-${CMAKE_VERSION}.tar.gz cmake-${CMAKE_VERSION}
 
-RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz && \
-    tar -zxvf cmake-${CMAKE_VERSION}.tar.gz && \
-    cd cmake-${CMAKE_VERSION} && \
-    ./bootstrap --prefix=/usr/local/ && \
-    make -j 16 && \
-    make install && \
-    rm -rf cmake-${CMAKE_VERSION}.tar.gz cmake-${CMAKE_VERSION}
-
 RUN git clone --branch=v${QT_VERSION} git://code.qt.io/qt/qt5.git qt-sources
 RUN cd qt-sources && ./init-repository --module-subset=qtbase,qthttpserver,qtserialport
 RUN mkdir -p qt-sources/build \
@@ -100,6 +92,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 COPY --from=BuildServerQtStage /usr/local/ /usr/local/
 
+RUN ls /usr/local
+
 RUN apt update && apt upgrade -y
 
 RUN apt update && apt install software-properties-common -y \
@@ -127,6 +121,8 @@ RUN apt update && apt install software-properties-common -y \
 RUN pip3 install conan==1.63.0 \
     && conan profile new default --detect \
     && conan profile update settings.compiler.libcxx=libstdc++11 default
+
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt-get install -y x11-apps
 
 ARG USERNAME=myuser
 ARG GROUPNAME=mygroup

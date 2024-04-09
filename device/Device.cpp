@@ -24,10 +24,16 @@ Device::Device(QObject* parent)
     }
     else {
         qWarning() << "DEVICE: Failed to open serial port:" << serial.errorString();
+        return;
     }
 
     frequencyTimer.setInterval(1000 / frequency);
     connect(&frequencyTimer, &QTimer::timeout, this, &Device::sendMeasurementData);
+}
+
+Device::~Device()
+{
+    serial.close();
 }
 
 void Device::handleReadyRead()
@@ -72,7 +78,7 @@ void Device::handleReadyRead()
 
 void Device::handleError(QSerialPort::SerialPortError error)
 {
-    qWarning() << "DEVICE: Serial port error:" << error << "-" << serial.errorString();
+    qDebug() << "DEVICE: Serial port error:" << error;
 }
 
 void Device::sendMeasurementData()
@@ -95,9 +101,6 @@ void Device::sendMeasurementData()
     const auto data = QString("$") + QString::number(random1, 'f', 1) + "," + QString::number(random2, 'f', 1) + ","
                     + QString::number(random3, 'f', 1) + "\n";
 
-    //  const auto data = QString("$") + QString::number(10.1, 'f', 1) + "," +
-    //                    QString::number(11.1, 'f', 1) + "," +
-    //                    QString::number(12.1, 'f', 1) + "\n";
 
     QByteArray dataToWrite = data.toLocal8Bit();
     serial.write(dataToWrite);
