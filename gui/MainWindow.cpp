@@ -4,6 +4,7 @@
 
 #include <QFile>
 #include <QFileDialog>
+#include <QIntValidator>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -12,6 +13,7 @@
 #include <QPainter>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTextEdit>
 #include <QTimer>
 #include <QUrlQuery>
@@ -39,8 +41,12 @@ MainWindow::MainWindow(QWidget* parent)
     auto deviceButton = new QPushButton("Device", this);
     connect(deviceButton, &QPushButton::clicked, this, &MainWindow::onDeviceClicked);
 
-    frequencyLineEdit = new QLineEdit(this);
-    frequencyLineEdit->setPlaceholderText("frequency");
+    //    frequencyLineEdit = new QLineEdit(this);
+    //    frequencyLineEdit->setPlaceholderText("frequency");
+    //    QIntValidator* validator = new QIntValidator(1, 100, frequencyLineEdit);
+    //    frequencyLineEdit->setValidator(validator);
+    frequencySpinBox = new QSpinBox;
+    frequencySpinBox->setRange(1, 100);
 
     debugLineEdit = new QLineEdit(this);
     debugLineEdit->setPlaceholderText("debug");
@@ -48,11 +54,22 @@ MainWindow::MainWindow(QWidget* parent)
     auto putButton = new QPushButton("Send Config", this);
     connect(putButton, &QPushButton::clicked, this, &MainWindow::onConfigurationClicked);
 
+    auto configLayout = new QHBoxLayout;
+    auto freqAndDebugLayout = new QVBoxLayout;
+    freqAndDebugLayout->addWidget(frequencySpinBox);
+    freqAndDebugLayout->addWidget(debugLineEdit);
+    configLayout->addWidget(putButton);
+    configLayout->addLayout(freqAndDebugLayout);
+
     limitLineEdit = new QLineEdit(this);
     limitLineEdit->setPlaceholderText("limit of messages");
 
     auto limitButton = new QPushButton("Limit messages", this);
     connect(limitButton, &QPushButton::clicked, this, &MainWindow::onMessagesLimitClicked);
+
+    auto limitLayout = new QHBoxLayout;
+    limitLayout->addWidget(limitButton);
+    limitLayout->addWidget(limitLineEdit);
 
     responseTextEdit = new QTextEdit(this);
     responseTextEdit->setReadOnly(true);
@@ -62,6 +79,17 @@ MainWindow::MainWindow(QWidget* parent)
 
     logDevicePlainTextEdit = new QPlainTextEdit(this);
     logDevicePlainTextEdit->setReadOnly(true);
+
+    customMessageEdit = new QLineEdit(this);
+    customMessageEdit->setPlaceholderText(
+        "custom message e.g. ($0\\n), ($1,\\n), ($2,1,true\\n) or incorrect like ($0), ($3), ($2,0\\n)");
+
+    auto sendMessageButton = new QPushButton("Send custom message", this);
+    connect(sendMessageButton, &QPushButton::clicked, this, &MainWindow::onSendCustomMessageClicked);
+
+    auto customMessageLayout = new QHBoxLayout;
+    customMessageLayout->addWidget(sendMessageButton);
+    customMessageLayout->addWidget(customMessageEdit);
 
     refreshTimer = new QTimer(this);
     connect(refreshTimer, &QTimer::timeout, this, &MainWindow::readLogFile);
@@ -86,17 +114,24 @@ MainWindow::MainWindow(QWidget* parent)
     logsLayout->addLayout(logDeviceLayout);
 
     auto mainLayout = new QVBoxLayout;
+
+    auto requestsLayout = new QVBoxLayout;
+
+    auto requestAndOutputLayout = new QHBoxLayout;
+
+    requestsLayout->addWidget(serverUrlLineEdit);
+    requestsLayout->addWidget(startButton);
+    requestsLayout->addWidget(stopButton);
+    requestsLayout->addWidget(deviceButton);
+    requestsLayout->addLayout(configLayout);
+    requestsLayout->addLayout(limitLayout);
+    requestsLayout->addLayout(customMessageLayout);
+
+    requestAndOutputLayout->addLayout(requestsLayout);
+    requestAndOutputLayout->addWidget(responseTextEdit);
+
     mainLayout->addWidget(cloneWidget, 0, Qt::AlignCenter);
-    mainLayout->addWidget(serverUrlLineEdit);
-    mainLayout->addWidget(startButton);
-    mainLayout->addWidget(stopButton);
-    mainLayout->addWidget(deviceButton);
-    mainLayout->addWidget(frequencyLineEdit);
-    mainLayout->addWidget(debugLineEdit);
-    mainLayout->addWidget(putButton);
-    mainLayout->addWidget(limitLineEdit);
-    mainLayout->addWidget(limitButton);
-    mainLayout->addWidget(responseTextEdit);
+    mainLayout->addLayout(requestAndOutputLayout);
     mainLayout->addLayout(logsLayout, 1);
 
     auto centralWidget = new QWidget(this);
@@ -151,8 +186,28 @@ void MainWindow::onConfigurationClicked()
     request.setRawHeader("Content-Type", "application/x-www-form-urlencoded");
 
     QUrlQuery postData;
-    postData.addQueryItem("frequency", frequencyLineEdit->text());
+    postData.addQueryItem("frequency", frequencySpinBox->text());
     postData.addQueryItem("debug", debugLineEdit->text());
+    QByteArray postDataByteArray = postData.toString(QUrl::FullyEncoded).toUtf8();
+
+    QByteArray requestData;
+    QNetworkReply* reply = networkManager->put(request, postDataByteArray);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        handleNetworkReply(reply);
+    });
+}
+
+void MainWindow::onSendCustomMessageClicked()
+{
+    QString urlStr = serverUrlLineEdit->text() + "/customMessage";
+    QUrl url(urlStr);
+
+    QNetworkRequest request(url);
+    request.setRawHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    QUrlQuery postData;
+    auto text = customMessageEdit->text();
+    postData.addQueryItem("message", text);
     QByteArray postDataByteArray = postData.toString(QUrl::FullyEncoded).toUtf8();
 
     QByteArray requestData;
@@ -178,7 +233,7 @@ void MainWindow::onMessagesLimitClicked()
 void MainWindow::handleNetworkReply(QNetworkReply* reply)
 {
     if (reply->error() == QNetworkReply::NoError) {
-        QMessageBox::information(this, "Information", "OK");
+        QMessageBox::information(this, "Information", "Succesfull operation");
         responseTextEdit->setText(reply->readAll());
     }
     else {

@@ -46,18 +46,31 @@ void Sender::processMessage(const QByteArray& message)
     QRegularExpressionMatch matchConfiguration = regexConfiguration.match(message);
 
     if (message.startsWith('$')) {
-        if (message.startsWith("$0,ok")) {
-            qDebug() << "SENDER: "
-                     << "Received start response:" << message;
-            timer.stop();
-            emit requestResult("ok");
+        if (message.startsWith("$0")) {
+            if (message.startsWith("$0,ok")) {
+                qDebug() << "SENDER: " << "Received start response:" << message;
+                timer.stop();
+                emit requestResult("ok");
+            }
+            if (message.startsWith("$0,invalid command")) {
+                qWarning() << "SENDER: invalid command" << message;
+                timer.stop();
+                emit requestResult("invalid command");
+            }
         }
-        else if (message.startsWith("$1,ok")) {
-            qDebug() << "SENDER: "
-                     << "Received stop response:" << message;
-            timer.stop();
-            emit requestResult("ok");
+        else if (message.startsWith("$1")) {
+            if (message.startsWith("$1,ok")) {
+                qDebug() << "SENDER: " << "Received stop response:" << message;
+                timer.stop();
+                emit requestResult("ok");
+            }
+            if (message.startsWith("$1,invalid command")) {
+                timer.stop();
+                qWarning() << "SENDER: invalid command" << message;
+                emit requestResult("invalid command");
+            }
         }
+
         else if (matchConfiguration.hasMatch()) {
             const auto frequency = matchConfiguration.captured(1).toInt();
             const bool debug = matchConfiguration.captured(2) == "true";
@@ -71,6 +84,11 @@ void Sender::processMessage(const QByteArray& message)
             timer.stop();
             emit requestResult(status);
         }
+        else if (message.startsWith("$2,invalid command")) {
+            timer.stop();
+            qWarning() << "SENDER: invalid command" << message;
+            emit requestResult("invalid command");
+        }
         else if (matchMeasurement.hasMatch()) {
             const auto pressure = matchMeasurement.captured(1).toDouble();
             const auto temperature = matchMeasurement.captured(2).toDouble();
@@ -82,17 +100,15 @@ void Sender::processMessage(const QByteArray& message)
         }
     }
     else {
-        qDebug() << "SENDER: "
-                 << "Invalid message format:" << message;
+        qWarning() << "SENDER: Invalid message format:" << message;
     }
 }
 
 void Sender::handleTimeout()
 {
-    qWarning() << "SENDER: "
-               << "Request timed out";
+    qWarning() << "SENDER: Request timed out";
     timer.stop();
-    emit requestResult("Warning: Request timed out");
+    emit requestResult("timeout");
 }
 
 void Sender::sendRequest(const QByteArray& request)

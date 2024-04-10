@@ -128,7 +128,7 @@ void Database::insertRecordToMessages(const Data& data) const
         qWarning() << "Error: Failed to insert record" << insertQuery.lastError().text();
     }
     else {
-        qDebug() << "Record inserted successfully";
+        qDebug() << "DATABASE: Record inserted successfully";
     }
 }
 
@@ -218,7 +218,7 @@ void Database::insertRecordToConfiguration(const Config& config) const
         return;
     }
 
-    qDebug() << "Record inserted or replaced successfully";
+    qDebug() << "DATABASE: Record inserted or replaced successfully";
 }
 
 std::optional<Config> Database::getConfiguration()

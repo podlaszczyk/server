@@ -1,0 +1,31 @@
+@startuml
+participant User
+participant "GUI" as GUI
+participant "Server" as Server
+participant "SerialPort" as SerialPort
+participant "Device" as Device
+
+User -> GUI: Start
+activate GUI
+
+GUI -> Server: Http start
+activate Server
+
+Server -> SerialPort: send message $0\\n
+activate SerialPort
+
+SerialPort -> Device: read message $0\\n
+activate Device
+
+Device -->SerialPort : send message $0,[status]\\n
+deactivate Device
+
+
+SerialPort --> Server: $0,[status]\\n
+deactivate SerialPort
+
+Server -->GUI : Http response error or 200
+deactivate Server
+
+GUI --> User
+@enduml

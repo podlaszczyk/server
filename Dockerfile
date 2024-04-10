@@ -134,4 +134,24 @@ RUN groupadd --gid $GROUPID $GROUPNAME \
     && usermod -aG sudo myuser \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+WORKDIR /clone
+COPY . /clone
 
+RUN cd /clone && ls
+RUN mkdir -p /clone/build \
+    && cd /clone/build \
+    && cmake .. -G Ninja -DCMAKE_PREFIX_PATH="/usr/local/Qt/6.5.3/gcc_64/" \
+    && cmake --build . --target all \
+    && cmake --build . --target PackageDeviceApp \
+    && cmake --build . --target PackageServerApp \
+    && cmake --build . --target PackageCloneApp
+
+FROM ubuntu:22.04 as RunnableStage
+
+COPY --from=BuildServerCodeStage /clone/build/CloneApp/ /clone/CloneApp/
+COPY --from=BuildServerCodeStage /clone/build/DeviceApp/ /clone/DeviceApp/
+COPY --from=BuildServerCodeStage /clone/build/ServerApp/ /clone/ServerApp/
+
+
+RUN apt update && apt upgrade -y
+RUN apt-get install -y socat libgl1 x11-apps libgl1-mesa-glx  libegl1-mesa libegl1 libopengl0

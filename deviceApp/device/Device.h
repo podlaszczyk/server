@@ -11,6 +11,8 @@ public:
     explicit Device(QObject* parent = nullptr);
     ~Device() override;
 
+    bool openUARTConnection();
+
 private slots:
     void handleReadyRead();
 
@@ -20,7 +22,7 @@ private slots:
     void stopSendingMessages();
 
 private:
-    QSerialPort serial;
+    QSerialPort serialPort;
     QTimer frequencyTimer;
     QTimer requestTimer;
     int frequency;

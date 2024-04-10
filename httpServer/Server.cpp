@@ -28,27 +28,19 @@ Server::Server(UARTParameters uartParameters, HTTPParameters httpParameters, QOb
 void Server::routes()
 {
     httpServer.route("/", [&]() {
-        return "Hello world";
+        return "Clone Server";
     });
 
     httpServer.route("/start", [&]() {
         sender.sendRequest("$0\n");
         loop.exec();
-
-        if (requestResult == "ok") {
-            return QHttpServerResponder::StatusCode::Ok;
-        }
-        return QHttpServerResponder::StatusCode::InternalServerError;
+        return handleUARTResponse();
     });
 
     httpServer.route("/stop", [&]() {
         sender.sendRequest("$1\n");
         loop.exec();
-
-        if (requestResult == "ok") {
-            return QHttpServerResponder::StatusCode::Ok;
-        }
-        return QHttpServerResponder::StatusCode::InternalServerError;
+        return handleUARTResponse();
     });
 
     httpServer.route("/configure", [&](const QHttpServerRequest& request) {
@@ -60,19 +52,14 @@ void Server::routes()
             const auto frequency = query.queryItemValue("frequency");
             const auto debug = query.queryItemValue("debug");
 
-            qDebug() << "SERVER: "
-                     << "Received Http Values:" << frequency << debug;
+            qDebug() << "SERVER: " << "Received Http Values:" << frequency << debug;
 
             const QString uartReq = QString("$2,") + frequency + "," + debug + "\n";
 
             sender.sendRequest(uartReq.toLocal8Bit());
             loop.exec();
-
-            if (requestResult == "ok") {
-                return QHttpServerResponder::StatusCode::Ok;
-            }
         }
-        return QHttpServerResponder::StatusCode::InternalServerError;
+        return handleUARTResponse();
     });
 
     httpServer.route("/messages", [&](const QHttpServerRequest& request) {
@@ -141,6 +128,21 @@ void Server::routes()
 
         return QHttpServerResponse(jsonData);
     });
+
+    httpServer.route("/customMessage", [&](const QHttpServerRequest& request) {
+        const auto method = request.method();
+        if (method == QHttpServerRequest::Method::Put) {
+            auto requestData = request.body();
+            QUrlQuery query(requestData);
+
+            auto message = query.queryItemValue("message");
+            message.replace("\\n", "\n");
+
+            sender.sendRequest(message.toLocal8Bit());
+            loop.exec();
+        }
+        return handleUARTResponse();
+    });
 }
 
 void Server::startHttpListening()
@@ -152,7 +154,8 @@ void Server::startHttpListening()
                    << httpParameters.host << ":" << httpParameters.port;
         return;
     }
-    qInfo() << QCoreApplication::translate("QHttpServer", "Running on http://%1:%2/")
+    qInfo() << "SERVER: "
+            << QCoreApplication::translate("QHttpServer", "Http server running on http://%1:%2/")
                    .arg(httpParameters.host.c_str())
                    .arg(port);
 }
@@ -160,11 +163,25 @@ void Server::startHttpListening()
 void Server::onReqResultReceived(const QString& result)
 {
     requestResult = result;
-    qDebug() << "Request result:" << requestResult;
+    qDebug() << "SERVER: Request result:" << requestResult;
     loop.quit();
 }
 
 bool Server::getUartStatus() const
 {
     return senderStatus;
+}
+
+QHttpServerResponder::StatusCode Server::handleUARTResponse()
+{
+    if (requestResult == "ok") {
+        return QHttpServerResponder::StatusCode::Ok;
+    }
+    if (requestResult == "invalid command") {
+        return QHttpServerResponder::StatusCode::BadRequest;
+    }
+    if (requestResult == "timeout") {
+        return QHttpServerResponder::StatusCode::RequestTimeout;
+    }
+    return QHttpServerResponder::StatusCode::InternalServerError;
 }

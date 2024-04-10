@@ -21,16 +21,15 @@ public:
 
 private:
     UARTParameters uartParameters;
-
     HTTPParameters httpParameters;
     Database database;
     Sender sender;
     QHttpServer httpServer;
     QString requestResult;
-
     QEventLoop loop;
 
     bool senderStatus = false;
     void routes();
     void onReqResultReceived(const QString& result);
+    QHttpServerResponder::StatusCode handleUARTResponse();
 };

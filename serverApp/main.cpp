@@ -38,10 +38,6 @@ bool parserCLI(const QCoreApplication& app, UARTParameters& uartParameters, HTTP
 
     parser.process(app);
 
-    bool verbose = parser.isSet("verbose");
-    if (!verbose) {
-        qInstallMessageHandler(LogMessageHandler);
-    }
     if (parser.isSet("help")) {
         parser.showHelp(0);
     }
@@ -89,6 +85,8 @@ int main(int argc, char* argv[])
     if (!parserCLI(app, uartParameters, httpParameters)) {
         return -1;
     }
+    qInstallMessageHandler(LogMessageHandler);
+
     QString basePath = QCoreApplication::applicationDirPath();
     qDebug() << "Base Path:" << basePath;
     Server server(uartParameters, httpParameters);

@@ -9,6 +9,7 @@ class QNetworkReply;
 class QPlainTextEdit;
 class QLabel;
 class CloneWidget;
+class QSpinBox;
 
 class MainWindow : public QMainWindow
 {
@@ -27,16 +28,19 @@ private:
     void onLoadAppLog();
     void onLoadDeviceLog();
     void onDeviceClicked();
+    void onSendCustomMessageClicked();
 
 private:
     QNetworkAccessManager* networkManager;
     QLineEdit* serverUrlLineEdit;
-    QLineEdit* frequencyLineEdit = nullptr;
+    //    QLineEdit* frequencyLineEdit = nullptr;
+    QLineEdit* customMessageEdit;
     QLineEdit* debugLineEdit;
     QLineEdit* limitLineEdit;
     QTextEdit* responseTextEdit;
     QPlainTextEdit* logServerPlainTextEdit;
     QPlainTextEdit* logDevicePlainTextEdit;
+    QSpinBox* frequencySpinBox;
 
     CloneWidget* cloneWidget;
 

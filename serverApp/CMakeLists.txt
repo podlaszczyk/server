@@ -1,6 +1,6 @@
 find_package(Qt6 EXACT 6.5.3 COMPONENTS Core REQUIRED)
 
-set(APPLICATION cloneApp)
+set(APPLICATION ServerApp)
 
 qt_standard_project_setup()
 
