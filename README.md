@@ -1,4 +1,55 @@
-# build image
+# install docker image from docker hub to save time building images
+
+```docker pull podlaszczyk/clone-inc:runnable```
+
+```docker pull podlaszczyk/clone-inc:build```
+
+```docker pull podlaszczyk/clone-inc:qt```
+
+run
+
+```xhost +local:docker```
+
+```docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --name clone_server podlaszczyk/clone-inc:runnable bash```
+
+```cd /clone```
+
+```ls -l```
+
+```
+total 12
+drwxr-xr-x 4 root root 4096 Apr 10 16:17 CloneApp
+drwxr-xr-x 4 root root 4096 Apr 10 16:17 DeviceApp
+drwxr-xr-x 4 root root 4096 Apr 10 16:17 ServerApp
+```
+
+These 3 directories contain 3 aplications.
+
+- CloneApp is gui
+- ServerApp starts http server and sends reads data from uart port
+- DeviceApp is a simulated device sending randomly generated messages
+
+inside image execute. If gui appears - GOOD.
+
+```./clone/CloneApp/usr/bin/CloneApp```
+
+if you see sth like:
+
+```
+Authorization required, but no authorization protocol specified
+qt.qpa.xcb: could not connect to display :1
+qt.qpa.plugin: From 6.5.0, xcb-cursor0 or libxcb-cursor0 is needed to load the Qt xcb platform plugin.
+qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
+This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+```
+
+u probably haven't allowed xhost for local user or image is corrupted and does not contain all necessary libraries.
+
+when container is closed
+
+```xhost -local:docker```
+
+# build docker images
 
 ### build command
 
@@ -13,6 +64,8 @@ If you want to work with codebase execute build image.
 
 # Running applications
 
+Depending on pulled or self built images adjust docker run commands images names.
+
 Open 4 terminals
 
 1. For socat simulation
@@ -25,7 +78,6 @@ For gui enabled:
 ```xhost +local:*```
 
 ```docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --network=host -v ${PWD}:/src --name clone_server clone-inc:runnable bash```
-
 
 ### In first terminal call:
 
