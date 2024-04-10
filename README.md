@@ -184,11 +184,11 @@ simulate http request from following examples
 
 ``` cmake --build . ```
 
-```cmake --build . --target PackagedeviceApp```
+```cmake --build . --target PackageDeviceApp```
 
-```cmake --build . --target Packagegui```
+```cmake --build . --target PackageServerApp```
 
-```cmake --build . --target PackagecloneApp```
+```cmake --build . --target PackageCloneApp```
 
 # General comments:
 
